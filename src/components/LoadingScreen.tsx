@@ -1,7 +1,15 @@
 import React from 'react';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, RefreshCw } from 'lucide-react';
 
-const LoadingScreen: React.FC = () => {
+interface LoadingScreenProps {
+  showResetButton?: boolean;
+  onReset?: () => void;
+}
+
+const LoadingScreen: React.FC<LoadingScreenProps> = ({ 
+  showResetButton = false, 
+  onReset 
+}) => {
   return (
     <div className="fixed inset-0 flex flex-col items-center justify-center bg-purple-600 text-white z-50">
       <div className="animate-pulse">
@@ -25,6 +33,21 @@ const LoadingScreen: React.FC = () => {
           }}
         ></div>
       </div>
+      
+      {showResetButton && (
+        <div className="mt-8">
+          <button
+            onClick={onReset}
+            className="flex items-center gap-2 bg-white text-purple-700 px-4 py-2 rounded-md font-medium hover:bg-purple-100 transition-colors"
+          >
+            <RefreshCw size={18} />
+            Loading taking too long? Click to reset
+          </button>
+          <p className="text-purple-200 text-sm mt-3 text-center">
+            If you continue to see this screen, there might be an issue connecting to our database.
+          </p>
+        </div>
+      )}
       
       <style jsx>{`
         @keyframes loading {
