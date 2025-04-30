@@ -7,11 +7,15 @@ import SearchResultsPage from './pages/SearchResultsPage';
 import SubmitPage from './pages/SubmitPage';
 import TrendingPage from './pages/TrendingPage';
 import LoadingScreen from './components/LoadingScreen';
+import ErrorBoundary from './components/ErrorBoundary';
+import { checkSupabaseConnection } from './lib/supabase';
 
 function App() {
   const [activePage, setActivePage] = useState('home');
   const [hasSearched, setHasSearched] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  // Add a state to track if we've been loading for too long
+  const [loadingTooLong, setLoadingTooLong] = useState(false);
   
   // Simple routing based on URL
   useEffect(() => {
@@ -19,6 +23,26 @@ function App() {
     const timer = setTimeout(() => {
       setIsLoading(false);
     }, 1000);
+    
+    // If loading takes more than 5 seconds, show a warning
+    const longLoadingTimer = setTimeout(() => {
+      if (isLoading) {
+        setLoadingTooLong(true);
+        console.warn('Loading is taking longer than expected');
+      }
+    }, 5000);
+    
+    // Test Supabase connection
+    const testConnection = async () => {
+      try {
+        const isConnected = await checkSupabaseConnection();
+        console.log('Supabase connection test result:', isConnected);
+      } catch (error) {
+        console.error('Error testing Supabase connection:', error);
+      }
+    };
+    
+    testConnection();
     
     const path = window.location.pathname;
     
@@ -48,8 +72,9 @@ function App() {
     return () => {
       window.removeEventListener('popstate', handleRouteChange);
       clearTimeout(timer);
+      clearTimeout(longLoadingTimer);
     };
-  }, []);
+  }, [isLoading]);
   
   // Listen for search events
   useEffect(() => {
@@ -72,26 +97,34 @@ function App() {
     };
   }, []);
 
+  // If we're still loading but it's taking too long, add a reset button
   if (isLoading) {
-    return <LoadingScreen />;
+    return (
+      <LoadingScreen 
+        showResetButton={loadingTooLong} 
+        onReset={() => window.location.reload()} 
+      />
+    );
   }
 
   return (
-    <AuthProvider>
-      <DictionaryProvider>
-        <MainLayout>
-          {hasSearched ? (
-            <SearchResultsPage />
-          ) : (
-            <>
-              {activePage === 'home' && <HomePage />}
-              {activePage === 'submit' && <SubmitPage />}
-              {activePage === 'trending' && <TrendingPage />}
-            </>
-          )}
-        </MainLayout>
-      </DictionaryProvider>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <DictionaryProvider>
+          <MainLayout>
+            {hasSearched ? (
+              <SearchResultsPage />
+            ) : (
+              <>
+                {activePage === 'home' && <HomePage />}
+                {activePage === 'submit' && <SubmitPage />}
+                {activePage === 'trending' && <TrendingPage />}
+              </>
+            )}
+          </MainLayout>
+        </DictionaryProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 
