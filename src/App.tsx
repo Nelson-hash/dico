@@ -7,7 +7,7 @@ import SearchResultsPage from './pages/SearchResultsPage';
 import SubmitPage from './pages/SubmitPage';
 import TrendingPage from './pages/TrendingPage';
 import LoadingScreen from './components/LoadingScreen';
-import ErrorBoundary from './components/ErrorBoundary';
+import ErrorMessage from './components/ErrorMessage';
 import { checkSupabaseConnection } from './lib/supabase';
 
 function App() {
@@ -16,6 +16,8 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
   // Add a state to track if we've been loading for too long
   const [loadingTooLong, setLoadingTooLong] = useState(false);
+  // Add error state
+  const [error, setError] = useState<string | null>(null);
   
   // Simple routing based on URL
   useEffect(() => {
@@ -37,8 +39,12 @@ function App() {
       try {
         const isConnected = await checkSupabaseConnection();
         console.log('Supabase connection test result:', isConnected);
+        if (!isConnected) {
+          console.warn('Supabase connection test failed, app will use mock data');
+        }
       } catch (error) {
         console.error('Error testing Supabase connection:', error);
+        setError('Failed to connect to database. Using mock data instead.');
       }
     };
     
@@ -108,23 +114,30 @@ function App() {
   }
 
   return (
-    <ErrorBoundary>
-      <AuthProvider>
-        <DictionaryProvider>
-          <MainLayout>
-            {hasSearched ? (
-              <SearchResultsPage />
-            ) : (
-              <>
-                {activePage === 'home' && <HomePage />}
-                {activePage === 'submit' && <SubmitPage />}
-                {activePage === 'trending' && <TrendingPage />}
-              </>
-            )}
-          </MainLayout>
-        </DictionaryProvider>
-      </AuthProvider>
-    </ErrorBoundary>
+    <AuthProvider>
+      <DictionaryProvider>
+        <MainLayout>
+          {error && (
+            <div className="container mx-auto px-4 py-4">
+              <ErrorMessage 
+                message={error} 
+                onRetry={() => window.location.reload()}
+              />
+            </div>
+          )}
+          
+          {hasSearched ? (
+            <SearchResultsPage />
+          ) : (
+            <>
+              {activePage === 'home' && <HomePage />}
+              {activePage === 'submit' && <SubmitPage />}
+              {activePage === 'trending' && <TrendingPage />}
+            </>
+          )}
+        </MainLayout>
+      </DictionaryProvider>
+    </AuthProvider>
   );
 }
 
