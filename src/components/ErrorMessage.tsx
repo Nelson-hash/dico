@@ -1,40 +1,60 @@
-import React from 'react';
-import { AlertCircle } from 'lucide-react';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
 
-interface ErrorMessageProps {
-  message: string;
-  onRetry?: () => void;
+interface Props {
+  children: ReactNode;
+  fallback?: ReactNode;
 }
 
-const ErrorMessage: React.FC<ErrorMessageProps> = ({ message, onRetry }) => {
-  return (
-    <div className="bg-red-50 border border-red-200 rounded-lg p-4 my-4 text-red-800">
-      <div className="flex items-start">
-        <div className="flex-shrink-0">
-          <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
-        </div>
-        <div className="ml-3">
-          <h3 className="text-sm font-medium text-red-800">
-            Something went wrong
-          </h3>
-          <div className="mt-2 text-sm text-red-700">
-            <p>{message}</p>
-          </div>
-          {onRetry && (
-            <div className="mt-4">
-              <button
-                type="button"
-                onClick={onRetry}
-                className="inline-flex items-center px-3 py-2 border border-red-300 shadow-sm text-sm leading-4 font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-              >
-                Try again
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
+interface State {
+  hasError: boolean;
+  error: Error | null;
+}
 
-export default ErrorMessage;
+class ErrorBoundary extends Component<Props, State> {
+  constructor(props: Props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error): State {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
+    console.error('ErrorBoundary caught an error:', error, errorInfo);
+  }
+
+  render(): ReactNode {
+    if (this.state.hasError) {
+      if (this.props.fallback) {
+        return this.props.fallback;
+      }
+      
+      return (
+        <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-md p-6 max-w-md w-full">
+            <h2 className="text-2xl font-bold text-purple-600 mb-4">Something went wrong</h2>
+            <p className="text-gray-700 mb-4">
+              We're sorry, but an error occurred while loading the application.
+            </p>
+            <div className="bg-gray-100 p-4 rounded-md mb-4">
+              <p className="text-sm font-mono text-gray-800">
+                {this.state.error?.message || 'Unknown error'}
+              </p>
+            </div>
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors"
+            >
+              Reload page
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+export default ErrorBoundary;
