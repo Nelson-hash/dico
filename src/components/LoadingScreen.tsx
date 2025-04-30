@@ -49,7 +49,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({
         </div>
       )}
       
-      <style jsx>{`
+      <style jsx="true">{`
         @keyframes loading {
           0% { transform: translateX(-100%); }
           100% { transform: translateX(200%); }
