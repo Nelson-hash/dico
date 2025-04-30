@@ -2,6 +2,8 @@ import React, { createContext, useState, useContext, ReactNode, useEffect } from
 import { Word } from '../types';
 import * as supabaseService from '../services/supabaseService';
 import { useAuth } from './AuthContext';
+// Import mock data as fallback
+import { mockWords, getRandomWord as getMockRandomWord, getWordOfTheDay as getMockWordOfTheDay, getTrendingWords as getMockTrendingWords } from '../utils/mockData';
 
 interface DictionaryContextType {
   words: Word[];
@@ -32,6 +34,7 @@ export const DictionaryProvider: React.FC<{ children: ReactNode }> = ({ children
   const [trendingWords, setTrendingWords] = useState<Word[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [useSupabase, setUseSupabase] = useState(true); // Flag to determine if we should use Supabase or mock data
 
   // Load initial data
   useEffect(() => {
@@ -39,21 +42,45 @@ export const DictionaryProvider: React.FC<{ children: ReactNode }> = ({ children
       setIsLoading(true);
       setError(null);
       
+      // Added try/catch for each call with fallback to mock data
       try {
-        // Load word of the day
-        const wotd = await supabaseService.getWordOfTheDay();
-        setWordOfTheDay(wotd);
-        
-        // Load trending words
-        const trending = await supabaseService.getTrendingWords();
-        setTrendingWords(trending);
-        
-        // Load initial words
-        const initialWords = await supabaseService.getWords();
-        setWords(initialWords);
+        if (useSupabase) {
+          try {
+            // Try Supabase first - if it fails, we'll use mock data
+            // Load word of the day
+            const wotd = await supabaseService.getWordOfTheDay();
+            setWordOfTheDay(wotd);
+            
+            // Load trending words
+            const trending = await supabaseService.getTrendingWords();
+            setTrendingWords(trending);
+            
+            // Load initial words
+            const initialWords = await supabaseService.getWords();
+            setWords(initialWords);
+          } catch (err) {
+            console.error('Error loading data from Supabase, falling back to mock data:', err);
+            setUseSupabase(false); // Switch to mock data for subsequent calls
+            
+            // Use mock data instead
+            setWordOfTheDay(getMockWordOfTheDay());
+            setTrendingWords(getMockTrendingWords());
+            setWords(mockWords);
+          }
+        } else {
+          // Use mock data directly
+          setWordOfTheDay(getMockWordOfTheDay());
+          setTrendingWords(getMockTrendingWords());
+          setWords(mockWords);
+        }
       } catch (err) {
         setError('Failed to load initial data');
         console.error('Error loading initial data:', err);
+        
+        // As a last resort, use mock data
+        setWordOfTheDay(getMockWordOfTheDay());
+        setTrendingWords(getMockTrendingWords());
+        setWords(mockWords);
       } finally {
         setIsLoading(false);
       }
@@ -79,11 +106,38 @@ export const DictionaryProvider: React.FC<{ children: ReactNode }> = ({ children
       url.searchParams.set('q', query);
       window.history.pushState({}, '', url.toString());
       
-      const results = await supabaseService.searchWords(query);
-      setSearchResults(results);
+      if (useSupabase) {
+        try {
+          const results = await supabaseService.searchWords(query);
+          setSearchResults(results);
+        } catch (err) {
+          console.error('Error searching in Supabase, falling back to mock data:', err);
+          // Fall back to mock search
+          const mockResults = mockWords.filter(word => 
+            word.word.toLowerCase().includes(query.toLowerCase()) ||
+            word.definitions.some(def => 
+              def.meaning.toLowerCase().includes(query.toLowerCase()) ||
+              def.example.toLowerCase().includes(query.toLowerCase())
+            )
+          );
+          setSearchResults(mockResults);
+        }
+      } else {
+        // Use mock search
+        const mockResults = mockWords.filter(word => 
+          word.word.toLowerCase().includes(query.toLowerCase()) ||
+          word.definitions.some(def => 
+            def.meaning.toLowerCase().includes(query.toLowerCase()) ||
+            def.example.toLowerCase().includes(query.toLowerCase())
+          )
+        );
+        setSearchResults(mockResults);
+      }
     } catch (err) {
       setError('Failed to search');
       console.error('Error searching words:', err);
+      // Set empty results as fallback
+      setSearchResults([]);
     } finally {
       setIsLoading(false);
     }
@@ -95,11 +149,24 @@ export const DictionaryProvider: React.FC<{ children: ReactNode }> = ({ children
     setError(null);
     
     try {
-      const randomWord = await supabaseService.getRandomWord();
-      setCurrentWord(randomWord);
+      if (useSupabase) {
+        try {
+          const randomWord = await supabaseService.getRandomWord();
+          setCurrentWord(randomWord);
+        } catch (err) {
+          console.error('Error getting random word from Supabase, falling back to mock data:', err);
+          // Fall back to mock random word
+          setCurrentWord(getMockRandomWord());
+        }
+      } else {
+        // Use mock random word
+        setCurrentWord(getMockRandomWord());
+      }
     } catch (err) {
       setError('Failed to get random word');
       console.error('Error getting random word:', err);
+      // Fall back to first word as last resort
+      setCurrentWord(mockWords[0]);
     } finally {
       setIsLoading(false);
     }
@@ -113,7 +180,14 @@ export const DictionaryProvider: React.FC<{ children: ReactNode }> = ({ children
     }
     
     try {
-      await supabaseService.voteOnDefinition(definitionId, user.id, vote);
+      if (useSupabase) {
+        try {
+          await supabaseService.voteOnDefinition(definitionId, user.id, vote);
+        } catch (err) {
+          console.error('Error voting in Supabase, using local state only:', err);
+          // Continue with local state update only
+        }
+      }
       
       // Update local state to reflect the vote
       const updatedWords = words.map(word => {
@@ -156,14 +230,67 @@ export const DictionaryProvider: React.FC<{ children: ReactNode }> = ({ children
     setError(null);
     
     try {
-      await supabaseService.submitWord(word, {
-        ...definition,
-        author_id: user.id
-      });
-      
-      // Refresh trending words after submission
-      const trending = await supabaseService.getTrendingWords();
-      setTrendingWords(trending);
+      if (useSupabase) {
+        try {
+          await supabaseService.submitWord(word, {
+            ...definition,
+            author_id: user.id
+          });
+          
+          // Refresh trending words after submission
+          const trending = await supabaseService.getTrendingWords();
+          setTrendingWords(trending);
+        } catch (err) {
+          console.error('Error submitting to Supabase, using mock data:', err);
+          // Fall back to mock data
+          // Just update local state for demo purposes
+          const newWord: Word = {
+            id: `mock-${Date.now()}`,
+            word: word,
+            created_at: new Date().toISOString(),
+            definitions: [
+              {
+                id: `def-${Date.now()}`,
+                word_id: `mock-${Date.now()}`,
+                meaning: definition.meaning,
+                example: definition.example,
+                author_id: user.id,
+                created_at: new Date().toISOString(),
+                upvotes: 0,
+                downvotes: 0,
+                tags: definition.tags
+              }
+            ]
+          };
+          
+          setWords([newWord, ...words]);
+          setTrendingWords([newWord, ...trendingWords.slice(0, -1)]);
+        }
+      } else {
+        // Use mock data
+        // Just update local state for demo purposes
+        const newWord: Word = {
+          id: `mock-${Date.now()}`,
+          word: word,
+          created_at: new Date().toISOString(),
+          definitions: [
+            {
+              id: `def-${Date.now()}`,
+              word_id: `mock-${Date.now()}`,
+              meaning: definition.meaning,
+              example: definition.example,
+              author_id: user.id,
+              created_at: new Date().toISOString(),
+              upvotes: 0,
+              downvotes: 0,
+              tags: definition.tags
+            }
+          ]
+        };
+        
+        setWords([newWord, ...words]);
+        setTrendingWords([newWord, ...trendingWords.slice(0, -1)]);
+      }
     } catch (err) {
       setError('Failed to submit word');
       console.error('Error submitting word:', err);
