@@ -1,147 +1,137 @@
-import { useState, useEffect } from 'react';
-import { Sun, Moon, Menu, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { useDictionary } from '../context/DictionaryContext';
+import { Search, BookOpen, Menu, X } from 'lucide-react';
 
-interface HeaderProps {
-  darkMode: boolean;
-  toggleDarkMode: () => void;
-}
+const Header: React.FC = () => {
+  const { setSearchQuery, getRandomWord } = useDictionary();
+  const [searchValue, setSearchValue] = useState('');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-const Header: React.FC<HeaderProps> = ({ darkMode, toggleDarkMode }) => {
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSearchQuery(searchValue);
+  };
 
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
 
   return (
-    <header 
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-        isScrolled 
-          ? 'bg-white/90 dark:bg-gray-900/90 backdrop-blur-md py-3 shadow-md' 
-          : 'bg-transparent py-6'
-      }`}
-    >
-      <div className="container mx-auto px-4 flex justify-between items-center">
-        <h1 className="text-2xl font-serif font-bold tracking-tight transition-colors duration-300 text-gray-900 dark:text-white">
-          <span className="text-indigo-600 dark:text-indigo-400">Pixel</span>Portfolio
-        </h1>
-        
-        <div className="hidden md:flex items-center space-x-6">
-          <nav>
-            <ul className="flex space-x-8">
-              <li>
-                <a 
-                  href="#" 
-                  className="text-gray-700 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-indigo-400 transition-colors duration-300"
-                >
-                  All
-                </a>
-              </li>
-              <li>
-                <a 
-                  href="#" 
-                  className="text-gray-700 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-indigo-400 transition-colors duration-300"
-                >
-                  Landscapes
-                </a>
-              </li>
-              <li>
-                <a 
-                  href="#" 
-                  className="text-gray-700 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-indigo-400 transition-colors duration-300"
-                >
-                  Portraits
-                </a>
-              </li>
-              <li>
-                <a 
-                  href="#" 
-                  className="text-gray-700 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-indigo-400 transition-colors duration-300"
-                >
-                  Abstract
-                </a>
-              </li>
-            </ul>
+    <header className="sticky top-0 bg-white shadow-md z-10">
+      <div className="container mx-auto px-4 py-4">
+        <div className="flex items-center justify-between">
+          {/* Logo */}
+          <div className="flex items-center">
+            <a href="/" className="flex items-center gap-2">
+              <BookOpen className="h-8 w-8 text-purple-600" />
+              <span className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-teal-400 bg-clip-text text-transparent">
+                UrbanSlang
+              </span>
+            </a>
+          </div>
+
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center space-x-8">
+            <a
+              href="/"
+              className="text-gray-600 hover:text-purple-600 transition-colors font-medium"
+            >
+              Home
+            </a>
+            <button
+              onClick={getRandomWord}
+              className="text-gray-600 hover:text-purple-600 transition-colors font-medium"
+            >
+              Random
+            </button>
+            <a
+              href="/submit"
+              className="text-gray-600 hover:text-purple-600 transition-colors font-medium"
+            >
+              Submit
+            </a>
+            <a
+              href="/trending"
+              className="text-gray-600 hover:text-purple-600 transition-colors font-medium"
+            >
+              Trending
+            </a>
           </nav>
-          <button 
-            onClick={toggleDarkMode}
-            className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-300"
-            aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
-          >
-            {darkMode ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
+
+          {/* Mobile Menu Button */}
+          <div className="md:hidden">
+            <button 
+              onClick={toggleMobileMenu}
+              className="p-2 text-gray-600 hover:text-purple-600"
+            >
+              {isMobileMenuOpen ? (
+                <X className="h-6 w-6" />
+              ) : (
+                <Menu className="h-6 w-6" />
+              )}
+            </button>
+          </div>
         </div>
-        
-        <div className="md:hidden flex items-center">
-          <button 
-            onClick={toggleDarkMode}
-            className="p-2 mr-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-300"
-            aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
-          >
-            {darkMode ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
-          
-          <button 
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="p-2 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-300"
-            aria-label={menuOpen ? "Close menu" : "Open menu"}
-          >
-            {menuOpen ? <X size={18} /> : <Menu size={18} />}
-          </button>
+
+        {/* Search Bar */}
+        <div className="mt-4">
+          <form onSubmit={handleSearchSubmit} className="relative">
+            <input
+              type="text"
+              placeholder="Search for slang..."
+              value={searchValue}
+              onChange={(e) => setSearchValue(e.target.value)}
+              className="w-full p-3 pl-10 pr-12 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+            />
+            <div className="absolute inset-y-0 left-0 flex items-center pl-3">
+              <Search className="h-5 w-5 text-gray-400" />
+            </div>
+            <button
+              type="submit"
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-purple-600 text-white rounded-full px-4 py-1.5 hover:bg-purple-700 transition-colors text-sm font-medium"
+            >
+              Define
+            </button>
+          </form>
         </div>
-      </div>
-      
-      {/* Mobile Menu */}
-      <div 
-        className={`md:hidden absolute top-full left-0 right-0 bg-white dark:bg-gray-900 shadow-lg transition-all duration-300 overflow-hidden ${
-          menuOpen ? 'max-h-64 py-4' : 'max-h-0'
-        }`}
-      >
-        <nav className="container mx-auto px-4">
-          <ul className="flex flex-col space-y-4">
-            <li>
-              <a 
-                href="#" 
-                className="block py-2 text-gray-700 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-indigo-400 transition-colors duration-300"
-                onClick={() => setMenuOpen(false)}
+
+        {/* Mobile Menu */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden mt-4 bg-white rounded-lg shadow-lg p-4 absolute left-4 right-4 z-20">
+            <nav className="flex flex-col space-y-4">
+              <a
+                href="/"
+                className="text-gray-600 hover:text-purple-600 transition-colors font-medium p-2"
+                onClick={() => setIsMobileMenuOpen(false)}
               >
-                All
+                Home
               </a>
-            </li>
-            <li>
-              <a 
-                href="#" 
-                className="block py-2 text-gray-700 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-indigo-400 transition-colors duration-300"
-                onClick={() => setMenuOpen(false)}
+              <button
+                onClick={() => {
+                  getRandomWord();
+                  setIsMobileMenuOpen(false);
+                }}
+                className="text-gray-600 hover:text-purple-600 transition-colors font-medium p-2 text-left"
               >
-                Landscapes
-              </a>
-            </li>
-            <li>
-              <a 
-                href="#" 
-                className="block py-2 text-gray-700 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-indigo-400 transition-colors duration-300"
-                onClick={() => setMenuOpen(false)}
+                Random
+              </button>
+              <a
+                href="/submit"
+                className="text-gray-600 hover:text-purple-600 transition-colors font-medium p-2"
+                onClick={() => setIsMobileMenuOpen(false)}
               >
-                Portraits
+                Submit
               </a>
-            </li>
-            <li>
-              <a 
-                href="#" 
-                className="block py-2 text-gray-700 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-indigo-400 transition-colors duration-300"
-                onClick={() => setMenuOpen(false)}
+              <a
+                href="/trending"
+                className="text-gray-600 hover:text-purple-600 transition-colors font-medium p-2"
+                onClick={() => setIsMobileMenuOpen(false)}
               >
-                Abstract
+                Trending
               </a>
-            </li>
-          </ul>
-        </nav>
+            </nav>
+          </div>
+        )}
       </div>
     </header>
   );
